@@ -1,0 +1,23 @@
+# ============================================================
+# Configurazione Eureka Discovery Server (Service Registry)
+# ============================================================
+
+server:
+  port: 8761 # Porta standard canonica per Netflix Eureka
+
+spring:
+  application:
+    name: eureka-server
+
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    # Essendo questo il nodo Server principale, disattiviamo
+    # il comportamento Client di default. Non vogliamo che il server
+    # tenti di registrarsi su se stesso o di sincronizzare il registro
+    # con altri peer (dato che in questo progetto abbiamo un server standalone).
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
