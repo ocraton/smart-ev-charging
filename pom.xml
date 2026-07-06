@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version>
+        <relativePath/> </parent>
+
+    <groupId>com.smartcharging</groupId>
+    <artifactId>smart-ev-charging</artifactId>
+    <version>1.0.0</version>
+    
+    <packaging>pom</packaging>
+
+    <name>Smart EV-Charging &amp; Grid Optimizer (Parent)</name>
+    <description>Progetto d'esame finale Micro-SOA - Studente Solista</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        
+        <spring-cloud.version>2023.0.1</spring-cloud.version>
+        <apache-cxf.version>4.0.4</apache-cxf.version> <springdoc-openapi.version>2.5.0</springdoc-openapi.version> </properties>
+
+    <modules>
+        <module>eureka-server</module>
+        <module>api-gateway</module>
+        <module>tariff-provider</module>
+        <module>station-provider</module>
+        <module>vehicle-provider</module>
+        <module>energy-prosumer</module>
+        <module>charging-orchestrator</module>
+        <module>client-app</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version> <!-- la versione viene inserita solo nel parent pom 
+                    e sarà facile anche aggiornare le versioni dei moduli figli -->
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
