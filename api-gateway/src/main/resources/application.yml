@@ -1,0 +1,35 @@
+server:
+  port: 9000 # Il Gateway risponde sulla porta 9000
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true # Permette di usare gli identificativi di Eureka per il routing
+      routes:
+        # 1. Routing verso il Charging Orchestrator (FLOW-01)
+        - id: charging-orchestrator-route
+          uri: lb://charging-orchestrator
+          predicates:
+            - Path=/api/v1/charging-sessions/**
+        
+        # 2. Routing verso l'Energy Prosumer (FLOW-02: Pattern Asincrono/Polling)
+        - id: energy-prosumer-route
+          uri: lb://energy-prosumer
+          predicates:
+            - Path=/api/simulations/**
+
+        # 3. Routing diretto verso lo Station Provider (FLOW-03: Chiamata SOAP)
+        - id: station-provider-route
+          uri: lb://station-provider
+          predicates:
+            - Path=/ws/station/**
+
+# Configurazione del client Eureka per collegarsi al registro locale
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
