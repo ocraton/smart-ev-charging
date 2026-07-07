@@ -1,0 +1,55 @@
+services:
+  # 1. Il Service Registry
+  eureka-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8761/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - smart-charging-network
+
+  # 2. L'API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: api-gateway
+    container_name: api-gateway
+    ports:
+      - "9000:9000"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - smart-charging-network
+
+  # 3. Il Tariff Provider
+  tariff-provider:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: tariff-provider
+    container_name: tariff-provider
+    ports:
+      - "8081:8081" # Esponiamo la porta per testare Swagger dal Mac
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - smart-charging-network
+
+networks:
+  smart-charging-network:
+    driver: bridge
