@@ -1,0 +1,11 @@
+server:
+  port: 8081 # Porta locale dedicata al Tariff Provider
+
+spring:
+  application:
+    name: tariff-provider # Nome con cui verrà registrato su Eureka
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
