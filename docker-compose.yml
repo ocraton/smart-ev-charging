@@ -50,6 +50,22 @@ services:
     networks:
       - smart-charging-network
 
+  # 4. Lo Station Provider
+  station-provider:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: station-provider
+    container_name: station-provider
+    ports:
+      - "8083:8083"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - smart-charging-network
+
 networks:
   smart-charging-network:
     driver: bridge

@@ -1,0 +1,15 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: station-provider
+
+# Configurazione del path base per tutti i servizi SOAP esposti da Apache CXF
+cxf:
+  path: /ws
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
