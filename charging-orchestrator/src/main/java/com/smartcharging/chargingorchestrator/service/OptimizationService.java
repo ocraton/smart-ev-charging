@@ -106,7 +106,7 @@ public class OptimizationService {
                <soapenv:Header/>
                <soapenv:Body>
                   <sta:GetStationStatus>
-                     <stationId>%s</stationId>
+                            <sta:stationId>%s</sta:stationId>
                   </sta:GetStationStatus>
                </soapenv:Body>
             </soapenv:Envelope>
