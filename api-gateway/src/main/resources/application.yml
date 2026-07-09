@@ -14,7 +14,13 @@ spring:
         - id: charging-orchestrator-route
           uri: lb://charging-orchestrator
           predicates:
-            - Path=/api/v1/charging-sessions/**,/api/v1/optimize,/api/v1/optimize/**
+            - Path=/api/v1/charging-sessions/**
+
+        # Rotta per il Charging Orchestrator (endpoint optimize)
+        - id: charging-orchestrator
+          uri: lb://charging-orchestrator
+          predicates:
+            - Path=/api/v1/optimize/**
         
         # 2. Routing verso l'Energy Prosumer (FLOW-02: Pattern Asincrono/Polling)
         - id: energy-prosumer-route
