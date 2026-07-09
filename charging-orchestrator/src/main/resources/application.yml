@@ -1,0 +1,11 @@
+server:
+  port: 8085 # Porta dedicata al prosumer Charging Orchestrator
+
+spring:
+  application:
+    name: charging-orchestrator # Nome logico registrato su Eureka e usato dal Gateway
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/ # Endpoint del Service Registry nella rete Docker

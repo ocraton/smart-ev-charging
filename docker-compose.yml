@@ -98,6 +98,22 @@ services:
     networks:
       - smart-charging-network
 
+  # 7. Il Charging Orchestrator
+  charging-orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: charging-orchestrator
+    container_name: charging-orchestrator
+    ports:
+      - "8085:8085"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - smart-charging-network
+
 networks:
   smart-charging-network:
     driver: bridge
