@@ -7,10 +7,9 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * DTO per la risposta dello stato della stazione di ricarica.
- * <p>Modellato come Java Record per garantire immutabilità strutturale.
- * Grazie a JAXB 4.0 (incluso in Jakarta EE 10 e Spring Boot 3.x), è possibile
- * serializzare direttamente i record in XML senza dover creare classi mutabili
- * con costruttori vuoti e metodi setter.</p>
+ * <p>Per la compatibilita con JAXB/CXF viene modellato come JavaBean classico,
+ * con costruttore vuoto e proprieta serializzabili, cosi da evitare errori di
+ * bootstrap del contesto SOAP durante la creazione del WSDL.</p>
  * 
  * @param stationId  L'identificativo univoco della colonnina.
  * @param status     Stato operativo (es. AVAILABLE, CHARGING, FAULT).
@@ -18,8 +17,48 @@ import jakarta.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "StationStatusResponse", namespace = "http://soap.smartcharging.com/station")
 @XmlAccessorType(XmlAccessType.FIELD)
-public record StationStatusResponse(
-    @XmlElement(required = true) String stationId,
-    @XmlElement(required = true) String status,
-    @XmlElement(required = true) double maxPowerKw
-) {}
+public class StationStatusResponse {
+
+    @XmlElement(required = true)
+    private String stationId;
+
+    @XmlElement(required = true)
+    private String status;
+
+    @XmlElement(required = true)
+    private double maxPowerKw;
+
+    public StationStatusResponse() {
+        // Costruttore richiesto da JAXB per la deserializzazione XML.
+    }
+
+    public StationStatusResponse(String stationId, String status, double maxPowerKw) {
+        this.stationId = stationId;
+        this.status = status;
+        this.maxPowerKw = maxPowerKw;
+    }
+
+    public String getStationId() {
+        return stationId;
+    }
+
+    public void setStationId(String stationId) {
+        this.stationId = stationId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public double getMaxPowerKw() {
+        return maxPowerKw;
+    }
+
+    public void setMaxPowerKw(double maxPowerKw) {
+        this.maxPowerKw = maxPowerKw;
+    }
+}
