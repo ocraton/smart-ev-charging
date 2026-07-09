@@ -114,6 +114,16 @@ services:
     networks:
       - smart-charging-network
 
+  # 8. Frontend UI Vue
+  frontend-ui:
+    build:
+      context: ./frontend-ui
+    container_name: frontend-ui
+    ports:
+      - "8080:80"
+    networks:
+      - smart-charging-network
+
 networks:
   smart-charging-network:
     driver: bridge
