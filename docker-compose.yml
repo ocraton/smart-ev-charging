@@ -82,6 +82,22 @@ services:
     networks:
       - smart-charging-network
 
+  # 6. L'Energy Prosumer
+  energy-prosumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: energy-prosumer
+    container_name: energy-prosumer
+    ports:
+      - "8084:8084"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - smart-charging-network
+
 networks:
   smart-charging-network:
     driver: bridge
