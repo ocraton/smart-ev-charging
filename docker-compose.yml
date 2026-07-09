@@ -66,6 +66,22 @@ services:
     networks:
       - smart-charging-network
 
+  # 5. Il Vehicle Provider
+  vehicle-provider:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: vehicle-provider
+    container_name: vehicle-provider
+    ports:
+      - "8082:8082"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - smart-charging-network
+
 networks:
   smart-charging-network:
     driver: bridge

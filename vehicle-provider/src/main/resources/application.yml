@@ -1,0 +1,11 @@
+server:
+  port: 8082 # Porta locale dedicata al Vehicle Provider
+
+spring:
+  application:
+    name: vehicle-provider # Nome con cui verrà registrato su Eureka
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/ # Usa il nome del container, non localhost

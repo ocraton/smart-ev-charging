@@ -11,29 +11,28 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>station-provider</artifactId>
-    <name>Station Provider (SOAP)</name>
-    <description>Servizio SOAP per la gestione dello stato delle infrastrutture di ricarica</description>
+    <artifactId>vehicle-provider</artifactId>
+    <name>Vehicle Provider</name>
+    <description>Servizio REST per la telemetria dei veicoli elettrici</description>
 
     <dependencies>
-        <!-- Spring Web per garantire la presenza di Apache Tomcat come server bloccante,
-             evitando lo spegnimento immediato del container all'avvio -->
+        <!-- Pacchetto per creare API REST (include Tomcat e Spring MVC) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <!-- Apache CXF per l'implementazione dei servizi SOAP (JAX-WS) -->
-        <dependency>
-            <groupId>org.apache.cxf</groupId>
-            <artifactId>cxf-spring-boot-starter-jaxws</artifactId>
-            <version>${apache-cxf.version}</version>
         </dependency>
 
         <!-- Eureka Client per registrarsi al Service Registry -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+
+        <!-- SpringDoc OpenAPI per la documentazione Swagger (Vincolo di traccia) -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc-openapi.version}</version>
         </dependency>
     </dependencies>
 
