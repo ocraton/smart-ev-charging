@@ -36,7 +36,6 @@
         <module>vehicle-provider</module>
         <module>energy-prosumer</module>
         <module>charging-orchestrator</module>
-        <module>client-app</module>
     </modules>
 
     <dependencyManagement>
