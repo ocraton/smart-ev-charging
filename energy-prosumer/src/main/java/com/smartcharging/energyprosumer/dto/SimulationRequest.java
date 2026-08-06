@@ -5,12 +5,16 @@ import io.swagger.v3.oas.annotations.media.Schema;
 /**
  * Payload di avvio simulazione per FLOW-02.
  *
- * <p>Il record e volutamente vuoto in questa fase per mantenere il contratto
- * estendibile senza introdurre campi non ancora richiesti dalla traccia.</p>
+ * <p>Il campo vehicleId e opzionale: se assente viene usato un veicolo di
+ * riferimento di default, cosi il contratto resta compatibile con client
+ * che non lo valorizzano ancora.</p>
  */
 @Schema(
     name = "SimulationRequest",
     description = "Payload di richiesta per l'avvio della simulazione asincrona dei risparmi di rete"
 )
-public record SimulationRequest() {
+public record SimulationRequest(
+    @Schema(description = "Veicolo di riferimento per la simulazione", example = "EV-001")
+    String vehicleId
+) {
 }

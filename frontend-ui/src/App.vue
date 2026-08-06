@@ -7,6 +7,7 @@ const flow1Loading = ref(false);
 const flow1Result = ref(null);
 const flow1Error = ref('');
 
+const simulationVehicleId = ref('EV-001');
 const simulationTicketId = ref('');
 const simulationStatus = ref('IDLE');
 const simulationResult = ref(null);
@@ -87,7 +88,7 @@ async function startSimulation() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: '{}'
+      body: JSON.stringify({ vehicleId: simulationVehicleId.value })
     });
 
     const data = await response.json();
@@ -153,6 +154,9 @@ onBeforeUnmount(() => {
       <section class="card flow-card">
         <h2>FLOW-02 · Simulazione con Polling</h2>
         <p class="subtitle">Pattern asincrono: HTTP 202 + monitoraggio stato ticket.</p>
+
+        <label for="simulationVehicleId">Vehicle ID</label>
+        <input id="simulationVehicleId" v-model="simulationVehicleId" type="text" />
 
         <button class="btn secondary" :disabled="simulationLoading" @click="startSimulation">
           {{ simulationLoading ? 'Simulazione in esecuzione...' : 'Avvia Simulazione Consumi' }}

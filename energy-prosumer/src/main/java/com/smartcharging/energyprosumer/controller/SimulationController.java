@@ -1,5 +1,6 @@
 package com.smartcharging.energyprosumer.controller;
 
+import com.smartcharging.energyprosumer.dto.GridSavingsResult;
 import com.smartcharging.energyprosumer.dto.SimulationRequest;
 import com.smartcharging.energyprosumer.dto.SimulationResponse;
 import com.smartcharging.energyprosumer.service.SimulationService;
@@ -72,7 +73,8 @@ public class SimulationController {
         String currentStatus = simulationService.getSimulationStatus(ticketId);
 
         if ("COMPLETED".equals(currentStatus)) {
-            SimulationResponse completed = new SimulationResponse(ticketId, "COMPLETED", "Simulation finished successfully.");
+            GridSavingsResult result = simulationService.getSimulationResult(ticketId);
+            SimulationResponse completed = new SimulationResponse(ticketId, "COMPLETED", result);
             return ResponseEntity.ok(completed);
         }
 
