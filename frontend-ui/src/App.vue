@@ -14,6 +14,12 @@ const simulationResult = ref(null);
 const simulationError = ref('');
 const simulationLoading = ref(false);
 
+const flow3StationId = ref('STATION-FAST-01');
+const flow3Loading = ref(false);
+const flow3Result = ref(null);
+const flow3RawResponse = ref('');
+const flow3Error = ref('');
+
 let pollIntervalId = null;
 
 function stopPolling() {
@@ -119,6 +125,68 @@ async function startSimulation() {
   }
 }
 
+async function lookupStation() {
+  flow3Loading.value = true;
+  flow3Error.value = '';
+  flow3Result.value = null;
+  flow3RawResponse.value = '';
+
+  const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sta="http://soap.smartcharging.com/station">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <sta:GetStationStatus>
+         <sta:stationId>${flow3StationId.value}</sta:stationId>
+      </sta:GetStationStatus>
+   </soapenv:Body>
+</soapenv:Envelope>`;
+
+  try {
+    const response = await fetch('http://localhost:9000/ws/station', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml;charset=UTF-8',
+        SOAPAction: ''
+      },
+      body: soapEnvelope
+    });
+
+    const rawXml = await response.text();
+    flow3RawResponse.value = rawXml;
+
+    if (!response.ok) {
+      throw new Error(`Il Station Provider ha risposto con status HTTP ${response.status}.`);
+    }
+
+    const xmlDoc = new DOMParser().parseFromString(rawXml, 'text/xml');
+
+    if (xmlDoc.querySelector('parsererror')) {
+      throw new Error('Risposta SOAP non valida: XML non parsabile.');
+    }
+
+    const findValue = (localName) => {
+      const match = Array.from(xmlDoc.getElementsByTagName('*'))
+        .find((node) => node.localName === localName);
+      return match ? match.textContent : null;
+    };
+
+    const faultMessage = findValue('faultstring');
+    if (faultMessage) {
+      throw new Error(`SOAP Fault: ${faultMessage}`);
+    }
+
+    flow3Result.value = {
+      stationId: findValue('stationId'),
+      status: findValue('status'),
+      maxPowerKw: findValue('maxPowerKw')
+    };
+  } catch (error) {
+    flow3Error.value = error instanceof Error ? error.message : 'Errore imprevisto nella chiamata SOAP.';
+  } finally {
+    flow3Loading.value = false;
+  }
+}
+
 onBeforeUnmount(() => {
   stopPolling();
 });
@@ -182,6 +250,25 @@ onBeforeUnmount(() => {
         <p v-if="simulationError" class="status error">{{ simulationError }}</p>
         <pre v-if="simulationResult">{{ JSON.stringify(simulationResult, null, 2) }}</pre>
       </section>
+
+      <section class="card flow-card">
+        <h2>FLOW-03 · Lookup Diretto Stazione (SOAP)</h2>
+        <p class="subtitle">Bypassa il ChargingOrchestrator: il Gateway inoltra la richiesta direttamente allo Station Provider via SOAP/XML.</p>
+
+        <label for="flow3StationId">Station ID</label>
+        <input id="flow3StationId" v-model="flow3StationId" type="text" />
+
+        <button class="btn primary" :disabled="flow3Loading" @click="lookupStation">
+          {{ flow3Loading ? 'Interrogazione SOAP in corso...' : 'Interroga Stazione (SOAP)' }}
+        </button>
+
+        <p v-if="flow3Error" class="status error">{{ flow3Error }}</p>
+        <pre v-if="flow3Result">{{ JSON.stringify(flow3Result, null, 2) }}</pre>
+        <details v-if="flow3RawResponse">
+          <summary>Risposta SOAP grezza (XML)</summary>
+          <pre>{{ flow3RawResponse }}</pre>
+        </details>
+      </section>
     </main>
   </div>
 </template>
@@ -228,7 +315,11 @@ onBeforeUnmount(() => {
 .grid-layout {
   display: grid;
   gap: 20px;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+}
+
+.flow-card:nth-child(3) {
+  grid-column: 1 / -1;
 }
 
 .card {
@@ -351,6 +442,21 @@ pre {
   font-size: 0.85rem;
 }
 
+details {
+  margin-top: 14px;
+}
+
+details summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #33415c;
+}
+
+details pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -369,6 +475,10 @@ pre {
 
   .card {
     padding: 16px;
+  }
+
+  .grid-layout {
+    grid-template-columns: 1fr;
   }
 }
 </style>
