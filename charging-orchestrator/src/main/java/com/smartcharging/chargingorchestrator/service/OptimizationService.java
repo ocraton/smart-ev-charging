@@ -56,9 +56,12 @@ public class OptimizationService {
      *
      * @param vehicleId identificativo del veicolo richiesto
      * @param stationId identificativo della stazione richiesta
+     * @param simulateWeekend parametro di sola simulazione/demo, inoltrato al Tariff Provider per
+     *                        forzare a comando lo scenario weekend senza dover aspettare un vero
+     *                        sabato/domenica
      * @return risposta aggregata con dati tecnici e suggerimento finale
      */
-    public OptimizationResponse optimizeCharging(String vehicleId, String stationId) {
+    public OptimizationResponse optimizeCharging(String vehicleId, String stationId, boolean simulateWeekend) {
         CompletableFuture<VehicleStatusData> vehicleFuture = CompletableFuture.supplyAsync(
             () -> restTemplate.getForObject(
                 "http://vehicle-provider/api/v1/vehicles/{vehicleId}/status",
@@ -70,8 +73,9 @@ public class OptimizationService {
 
         CompletableFuture<TariffData[]> tariffFuture = CompletableFuture.supplyAsync(
             () -> restTemplate.getForObject(
-                "http://tariff-provider/api/v1/tariffs/daily",
-                TariffData[].class
+                "http://tariff-provider/api/v1/tariffs/daily?simulateWeekend={simulateWeekend}",
+                TariffData[].class,
+                simulateWeekend
             ),
             prosumerExecutor
         );

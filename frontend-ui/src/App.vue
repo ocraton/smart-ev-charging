@@ -3,6 +3,9 @@ import { onBeforeUnmount, ref } from 'vue';
 
 const flow1VehicleId = ref('EV-001');
 const flow1StationId = ref('STATION-FAST-01');
+// Parametro di sola simulazione/demo: forza il Tariff Provider a comportarsi come weekend
+// (sconto notturno profondo) senza dover aspettare un vero sabato/domenica.
+const flow1SimulateWeekend = ref(false);
 const flow1Loading = ref(false);
 const flow1Result = ref(null);
 const flow1Error = ref('');
@@ -36,7 +39,8 @@ async function calculatePlan() {
 
   const query = new URLSearchParams({
     vehicleId: flow1VehicleId.value,
-    stationId: flow1StationId.value
+    stationId: flow1StationId.value,
+    simulateWeekend: String(flow1SimulateWeekend.value)
   });
 
   try {
@@ -210,6 +214,11 @@ onBeforeUnmount(() => {
         <label for="stationId">Station ID</label>
         <input id="stationId" v-model="flow1StationId" type="text" />
 
+        <label class="toggle-row" for="flow1SimulateWeekend">
+          <input id="flow1SimulateWeekend" v-model="flow1SimulateWeekend" type="checkbox" />
+          Simula tariffa weekend (solo demo)
+        </label>
+
         <button class="btn primary" :disabled="flow1Loading" @click="calculatePlan">
           {{ flow1Loading ? 'Calcolo in corso...' : 'Calcola Piano' }}
         </button>
@@ -356,6 +365,16 @@ input {
   padding: 10px 12px;
   font-family: inherit;
   font-size: 0.95rem;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-row input {
+  width: auto;
 }
 
 .btn {

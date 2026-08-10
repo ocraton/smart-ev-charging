@@ -40,6 +40,7 @@ public class OptimizationController {
      *
      * @param vehicleId identificativo del veicolo da ottimizzare
      * @param stationId identificativo della stazione di ricarica target
+     * @param simulateWeekend parametro di sola simulazione/demo, inoltrato al Tariff Provider
      * @return payload aggregato con raccomandazione di ricarica
      */
     @GetMapping("/optimize")
@@ -52,8 +53,10 @@ public class OptimizationController {
         @Parameter(description = "Identificativo del veicolo", example = "EV-001")
         @RequestParam String vehicleId,
         @Parameter(description = "Identificativo della stazione", example = "STATION-FAST-01")
-        @RequestParam String stationId
+        @RequestParam String stationId,
+        @Parameter(description = "Parametro di sola simulazione/demo: forza il Tariff Provider a comportarsi come weekend indipendentemente dal giorno reale")
+        @RequestParam(required = false, defaultValue = "false") boolean simulateWeekend
     ) {
-        return optimizationService.optimizeCharging(vehicleId, stationId);
+        return optimizationService.optimizeCharging(vehicleId, stationId, simulateWeekend);
     }
 }
