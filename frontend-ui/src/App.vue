@@ -203,6 +203,72 @@ onBeforeUnmount(() => {
       <p>Control room per orchestrazione e simulazioni energetiche in tempo reale.</p>
     </header>
 
+    <section class="card info-card">
+      <details class="info-details">
+        <summary><h2>Guida ai parametri di simulazione</h2></summary>
+
+        <p class="subtitle">Questi valori sono dati simulati in-memory (non una vera flotta/rete), pensati per dimostrare a comando i diversi rami di raccomandazione di FLOW-01.</p>
+
+        <div class="info-grid">
+          <div>
+            <h3>Vehicle ID</h3>
+            <ul>
+              <li><code>EV-001</code> → batteria 50 kWh, SoC 60% (normale)</li>
+              <li><code>EV-002</code> → batteria 50 kWh, SoC 20% (critico)</li>
+              <li>qualsiasi altro ID → default 60% (come EV-001)</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Station ID</h3>
+            <ul>
+              <li>contiene <code>FAST</code> (es. <code>STATION-FAST-01</code>) → 150 kW</li>
+              <li>qualsiasi altro (es. <code>STATION-SLOW-01</code>) → 22 kW</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Simula tariffa weekend</h3>
+            <ul>
+              <li>disattivo → tariffa reale del giorno corrente</li>
+              <li>attivo → forza lo sconto notturno profondo anche nei feriali</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table class="scenario-table">
+            <thead>
+              <tr>
+                <th>Vehicle ID</th>
+                <th>Station ID</th>
+                <th>Weekend simulato</th>
+                <th>Raccomandazione attesa</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>EV-002</code></td>
+                <td><code>STATION-FAST-01</code></td>
+                <td>indifferente</td>
+                <td>Ricarica immediata ad alta potenza (SoC critico + stazione potente)</td>
+              </tr>
+              <tr>
+                <td><code>EV-001</code></td>
+                <td><code>STATION-SLOW-01</code></td>
+                <td>no (default, feriale)</td>
+                <td>Ricarica distribuita nelle fasce a costo intermedio</td>
+              </tr>
+              <tr>
+                <td><code>EV-001</code></td>
+                <td><code>STATION-SLOW-01</code></td>
+                <td>sì</td>
+                <td>Ricarica notturna consigliata / già in fascia economica</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
     <main class="grid-layout">
       <section class="card flow-card">
         <h2>FLOW-01 · Ottimizzazione Ricarica</h2>
@@ -339,6 +405,88 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(6px);
   box-shadow: 0 14px 36px rgba(27, 38, 59, 0.12);
   animation: rise-in 500ms ease both;
+}
+
+.info-card {
+  margin-bottom: 20px;
+  background: rgba(255, 244, 214, 0.6);
+  border-color: rgba(122, 93, 0, 0.18);
+}
+
+.info-details {
+  margin-top: 0;
+}
+
+.info-details summary {
+  margin: 0;
+  cursor: pointer;
+}
+
+.info-details summary h2 {
+  display: inline;
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1b263b;
+}
+
+.info-details p,
+.info-details .info-grid,
+.info-details .table-scroll {
+  margin-top: 14px;
+}
+
+.info-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.info-grid h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+}
+
+.info-grid ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.88rem;
+  color: #33415c;
+}
+
+.info-grid li {
+  margin-bottom: 4px;
+}
+
+code {
+  background: rgba(27, 38, 59, 0.08);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85em;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 16px;
+}
+
+.scenario-table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.scenario-table th,
+.scenario-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(27, 38, 59, 0.12);
+}
+
+.scenario-table th {
+  color: #33415c;
+  font-weight: 700;
 }
 
 .flow-card:nth-child(2) {
