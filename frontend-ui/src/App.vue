@@ -11,6 +11,9 @@ const flow1Result = ref(null);
 const flow1Error = ref('');
 
 const simulationVehicleId = ref('EV-001');
+// Parametro di sola simulazione/demo: forza il Tariff Provider a comportarsi come weekend
+// (sconto notturno profondo) senza dover aspettare un vero sabato/domenica.
+const simulationSimulateWeekend = ref(false);
 const simulationTicketId = ref('');
 const simulationStatus = ref('IDLE');
 const simulationResult = ref(null);
@@ -98,7 +101,10 @@ async function startSimulation() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ vehicleId: simulationVehicleId.value })
+      body: JSON.stringify({
+        vehicleId: simulationVehicleId.value,
+        simulateWeekend: simulationSimulateWeekend.value
+      })
     });
 
     const data = await response.json();
@@ -207,7 +213,7 @@ onBeforeUnmount(() => {
       <details class="info-details">
         <summary><h2>Guida ai parametri di simulazione</h2></summary>
 
-        <p class="subtitle">Questi valori sono dati simulati in-memory (non una vera flotta/rete), pensati per dimostrare a comando i diversi rami di raccomandazione di FLOW-01.</p>
+        <p class="subtitle">Questi valori sono dati simulati in-memory (non una vera flotta/rete), pensati per dimostrare a comando i diversi rami di raccomandazione di FLOW-01. Lo stesso toggle "Simula tariffa weekend" è disponibile anche in FLOW-02 (agisce solo sui valori di tariffa nel risultato, non genera rami diversi).</p>
 
         <div class="info-grid">
           <div>
@@ -300,6 +306,11 @@ onBeforeUnmount(() => {
 
         <label for="simulationVehicleId">Vehicle ID</label>
         <input id="simulationVehicleId" v-model="simulationVehicleId" type="text" />
+
+        <label class="toggle-row" for="simulationSimulateWeekend">
+          <input id="simulationSimulateWeekend" v-model="simulationSimulateWeekend" type="checkbox" />
+          Simula tariffa weekend (solo demo)
+        </label>
 
         <button class="btn secondary" :disabled="simulationLoading" @click="startSimulation">
           {{ simulationLoading ? 'Simulazione in esecuzione...' : 'Avvia Simulazione Consumi' }}

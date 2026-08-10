@@ -44,7 +44,8 @@ public class SimulationService {
      * e pianifica su un executor differito l'interrogazione dei provider e il
      * calcolo del risultato, senza bloccare il thread HTTP chiamante.</p>
      *
-     * @param request payload della simulazione, con veicolo di riferimento opzionale
+     * @param request payload della simulazione, con veicolo di riferimento opzionale e
+     *                 l'eventuale parametro di sola simulazione/demo simulateWeekend
      * @return identificativo univoco del ticket
      */
     public String startAsyncSimulation(SimulationRequest request) {
@@ -52,11 +53,12 @@ public class SimulationService {
         String vehicleId = request.vehicleId() != null && !request.vehicleId().isBlank()
             ? request.vehicleId()
             : DEFAULT_VEHICLE_ID;
+        boolean simulateWeekend = request.simulateWeekend();
 
         ticketStatusMap.put(ticketId, "PENDING");
 
         CompletableFuture.runAsync(
-            () -> runSimulation(ticketId, vehicleId),
+            () -> runSimulation(ticketId, vehicleId, simulateWeekend),
             CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS)
         );
 
@@ -71,10 +73,11 @@ public class SimulationService {
      * dimostrare il pattern di polling per un'elaborazione la cui durata dipende
      * da servizi esterni, non minimizzarne la latenza con CompletableFuture paralleli.</p>
      */
-    private void runSimulation(String ticketId, String vehicleId) {
+    private void runSimulation(String ticketId, String vehicleId, boolean simulateWeekend) {
         TariffData[] dailyTariffs = restTemplate.getForObject(
-            "http://tariff-provider/api/v1/tariffs/daily",
-            TariffData[].class
+            "http://tariff-provider/api/v1/tariffs/daily?simulateWeekend={simulateWeekend}",
+            TariffData[].class,
+            simulateWeekend
         );
 
         VehicleStatusData vehicleStatus = restTemplate.getForObject(

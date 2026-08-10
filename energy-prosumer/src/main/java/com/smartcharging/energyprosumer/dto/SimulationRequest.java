@@ -15,6 +15,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 )
 public record SimulationRequest(
     @Schema(description = "Veicolo di riferimento per la simulazione", example = "EV-001")
-    String vehicleId
+    String vehicleId,
+
+    @Schema(description = "Parametro di sola simulazione/demo: forza il Tariff Provider a comportarsi come weekend indipendentemente dal giorno reale", example = "false")
+    boolean simulateWeekend
 ) {
 }
