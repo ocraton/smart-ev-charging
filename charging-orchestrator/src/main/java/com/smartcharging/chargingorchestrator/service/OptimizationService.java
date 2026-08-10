@@ -1,6 +1,7 @@
 package com.smartcharging.chargingorchestrator.service;
 
 import com.smartcharging.chargingorchestrator.dto.OptimizationResponse;
+import com.smartcharging.chargingorchestrator.exception.ProviderUnavailableException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +15,7 @@ import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -86,7 +88,14 @@ public class OptimizationService {
         );
 
         // qui aspettiamo il completamento di tutte e tre le chiamate prima di procedere con l'aggregazione dei risultati
-        CompletableFuture.allOf(vehicleFuture, tariffFuture, stationFuture).join();
+        try {
+            CompletableFuture.allOf(vehicleFuture, tariffFuture, stationFuture).join();
+        } catch (CompletionException e) {
+            throw new ProviderUnavailableException(
+                "Uno o più provider non hanno risposto correttamente durante l'orchestrazione FLOW-01",
+                e
+            );
+        }
 
         VehicleStatusData vehicleStatus = vehicleFuture.join();
         TariffData[] dailyTariffs = tariffFuture.join();

@@ -2,7 +2,6 @@ package com.smartcharging.chargingorchestrator.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
@@ -14,10 +13,11 @@ import java.util.concurrent.Executor;
  * chiamate concorrenti verso Vehicle Provider, Tariff Provider e Station Provider occupino
  * i thread HTTP del container web. L'executor nominato "prosumerExecutor" viene quindi
  * iniettato nel servizio di orchestrazione e usato come base esplicita per i task lanciati
- * con CompletableFuture.</p>
+ * con CompletableFuture.supplyAsync(...). Non è presente {@code @EnableAsync} perché nessun
+ * metodo del progetto è annotato con {@code @Async}: il parallelismo è ottenuto passando
+ * esplicitamente questo executor a CompletableFuture, non tramite il proxy AOP di Spring.</p>
  */
 @Configuration
-@EnableAsync
 public class AsyncConfig {
 
     /**
