@@ -9,6 +9,8 @@ services:
     container_name: eureka-server
     ports:
       - "8761:8761"
+    environment:
+      - TZ=Europe/Rome
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8761/"]
       interval: 10s
@@ -28,6 +30,8 @@ services:
     container_name: api-gateway
     ports:
       - "9000:9000"
+    environment:
+      - TZ=Europe/Rome
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -44,6 +48,8 @@ services:
     container_name: tariff-provider
     ports:
       - "8081:8081" # Esponiamo la porta per testare Swagger dal Mac
+    environment:
+      - TZ=Europe/Rome
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -60,6 +66,8 @@ services:
     container_name: station-provider
     ports:
       - "8083:8083"
+    environment:
+      - TZ=Europe/Rome
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -76,6 +84,8 @@ services:
     container_name: vehicle-provider
     ports:
       - "8082:8082"
+    environment:
+      - TZ=Europe/Rome
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -92,6 +102,8 @@ services:
     container_name: energy-prosumer
     ports:
       - "8084:8084"
+    environment:
+      - TZ=Europe/Rome
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -108,6 +120,8 @@ services:
     container_name: charging-orchestrator
     ports:
       - "8085:8085"
+    environment:
+      - TZ=Europe/Rome
     depends_on:
       eureka-server:
         condition: service_healthy

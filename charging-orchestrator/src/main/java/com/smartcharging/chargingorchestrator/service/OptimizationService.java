@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
@@ -80,6 +81,7 @@ public class OptimizationService {
             prosumerExecutor
         );
 
+        // qui aspettiamo il completamento di tutte e tre le chiamate prima di procedere con l'aggregazione dei risultati
         CompletableFuture.allOf(vehicleFuture, tariffFuture, stationFuture).join();
 
         VehicleStatusData vehicleStatus = vehicleFuture.join();
@@ -138,17 +140,27 @@ public class OptimizationService {
         StationStatusData stationStatus,
         TariffData[] dailyTariffs
     ) {
-        double cheapestTariff = Arrays.stream(dailyTariffs == null ? new TariffData[0] : dailyTariffs)
+        TariffData[] tariffs = dailyTariffs == null ? new TariffData[0] : dailyTariffs;
+
+        TariffData cheapestSlot = Arrays.stream(tariffs)
             .min(Comparator.comparingDouble(TariffData::pricePerKwh))
-            .map(TariffData::pricePerKwh)
-            .orElse(0.30d);
+            .orElse(new TariffData(LocalTime.now().getHour(), 0.30d));
 
         if (vehicleStatus.currentSoC() < 30.0 && stationStatus.maxPowerKw() >= 50.0) {
             return "Ricarica immediata ad alta potenza consigliata";
         }
 
-        if (cheapestTariff <= 0.25d) {
-            return "Ricarica notturna consigliata";
+        if (cheapestSlot.pricePerKwh() <= 0.25d) {
+            int currentHour = LocalTime.now().getHour();
+
+            boolean currentlyInCheapestSlot = Arrays.stream(tariffs)
+                .anyMatch(tariff -> tariff.hour() == currentHour && tariff.pricePerKwh() <= cheapestSlot.pricePerKwh());
+
+            if (currentlyInCheapestSlot) {
+                return "Sei già nella fascia oraria economica: ricarica immediata consigliata";
+            }
+
+            return "Ricarica notturna consigliata: attendi le ore %02d:00 per la tariffa minima".formatted(cheapestSlot.hour());
         }
 
         return "Ricarica distribuita nelle fasce a costo intermedio";
