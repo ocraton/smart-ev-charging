@@ -2,6 +2,8 @@ package com.smartcharging.energyprosumer.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.Map;
+
 /**
  * DTO di risposta del pattern di polling asincrono.
  *
@@ -11,6 +13,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param ticketId identificativo univoco della simulazione asincrona
  * @param status stato della simulazione (PENDING, RUNNING o COMPLETED)
  * @param result contenuto del risultato finale; nullo finche l'elaborazione non termina
+ * @param legend descrizione sintetica dei campi di result, valorizzata solo quando COMPLETED
+ *               (solo di supporto alla lettura della risposta grezza, dato che il JSON non
+ *               supporta commenti veri e propri)
  */
 @Schema(
     name = "SimulationResponse",
@@ -22,6 +27,8 @@ public record SimulationResponse(
     @Schema(description = "Stato corrente della simulazione", example = "PENDING")
     String status,
     @Schema(description = "Risultato finale della simulazione, valorizzato solo quando COMPLETED")
-    Object result
+    Object result,
+    @Schema(description = "Legenda dei campi di result, di sola lettura/demo, valorizzata solo quando COMPLETED")
+    Map<String, String> legend
 ) {
 }

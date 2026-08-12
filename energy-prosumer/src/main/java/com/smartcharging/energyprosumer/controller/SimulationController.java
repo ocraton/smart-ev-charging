@@ -53,7 +53,7 @@ public class SimulationController {
     @ApiResponse(responseCode = "202", description = "Simulazione accettata e ticket generato")
     public ResponseEntity<SimulationResponse> startGridSavingsSimulation(@RequestBody SimulationRequest request) {
         String ticketId = simulationService.startAsyncSimulation(request);
-        SimulationResponse response = new SimulationResponse(ticketId, "PENDING", null);
+        SimulationResponse response = new SimulationResponse(ticketId, "PENDING", null, null);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
@@ -74,11 +74,11 @@ public class SimulationController {
 
         if ("COMPLETED".equals(currentStatus)) {
             GridSavingsResult result = simulationService.getSimulationResult(ticketId);
-            SimulationResponse completed = new SimulationResponse(ticketId, "COMPLETED", result);
+            SimulationResponse completed = new SimulationResponse(ticketId, "COMPLETED", result, GridSavingsResult.FIELD_LEGEND);
             return ResponseEntity.ok(completed);
         }
 
-        SimulationResponse running = new SimulationResponse(ticketId, "RUNNING", null);
+        SimulationResponse running = new SimulationResponse(ticketId, "RUNNING", null, null);
         return ResponseEntity.ok(running);
     }
 }
