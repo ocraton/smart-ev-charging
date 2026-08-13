@@ -61,21 +61,32 @@ public class SimulationController {
      * Restituisce lo stato corrente della simulazione richiesta dal ticket.
      *
      * @param ticketId identificativo assegnato all'avvio della simulazione
-     * @return HTTP 200 con stato RUNNING o COMPLETED
+     * @return HTTP 404 se il ticket non esiste, altrimenti HTTP 200 con stato
+     *         RUNNING, FAILED o COMPLETED
      */
     @GetMapping("/status/{ticketId}")
     @Operation(
         summary = "Controlla stato simulazione",
-        description = "Ritorna RUNNING fino al completamento del job asincrono, poi COMPLETED con risultato sintetico."
+        description = "Ritorna RUNNING fino al completamento del job asincrono, poi COMPLETED con risultato sintetico o FAILED se uno dei provider non ha risposto correttamente."
     )
     @ApiResponse(responseCode = "200", description = "Stato simulazione recuperato")
+    @ApiResponse(responseCode = "404", description = "Nessun ticket trovato con questo identificativo")
     public ResponseEntity<SimulationResponse> getSimulationStatus(@PathVariable String ticketId) {
         String currentStatus = simulationService.getSimulationStatus(ticketId);
+
+        if (currentStatus == null) {
+            return ResponseEntity.notFound().build();
+        }
 
         if ("COMPLETED".equals(currentStatus)) {
             GridSavingsResult result = simulationService.getSimulationResult(ticketId);
             SimulationResponse completed = new SimulationResponse(ticketId, "COMPLETED", result, GridSavingsResult.FIELD_LEGEND);
             return ResponseEntity.ok(completed);
+        }
+
+        if ("FAILED".equals(currentStatus)) {
+            SimulationResponse failed = new SimulationResponse(ticketId, "FAILED", null, null);
+            return ResponseEntity.ok(failed);
         }
 
         SimulationResponse running = new SimulationResponse(ticketId, "RUNNING", null, null);

@@ -2,7 +2,9 @@ package com.smartcharging.energyprosumer.service;
 
 import com.smartcharging.energyprosumer.dto.GridSavingsResult;
 import com.smartcharging.energyprosumer.dto.SimulationRequest;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
@@ -11,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -30,11 +33,13 @@ public class SimulationService {
     private static final String DEFAULT_VEHICLE_ID = "EV-001";
 
     private final RestTemplate restTemplate;
+    private final Executor simulationExecutor;
     private final Map<String, String> ticketStatusMap = new ConcurrentHashMap<>();
     private final Map<String, GridSavingsResult> ticketResultMap = new ConcurrentHashMap<>();
 
-    public SimulationService(RestTemplate restTemplate) {
+    public SimulationService(RestTemplate restTemplate, @Qualifier("simulationExecutor") Executor simulationExecutor) {
         this.restTemplate = restTemplate;
+        this.simulationExecutor = simulationExecutor;
     }
 
     /**
@@ -59,7 +64,7 @@ public class SimulationService {
 
         CompletableFuture.runAsync(
             () -> runSimulation(ticketId, vehicleId, simulateWeekend),
-            CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS)
+            CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS, simulationExecutor)
         );
 
         return ticketId;
@@ -72,23 +77,33 @@ public class SimulationService {
      * qui, quello e il ruolo del ChargingOrchestrator): l'obiettivo di FLOW-02 e
      * dimostrare il pattern di polling per un'elaborazione la cui durata dipende
      * da servizi esterni, non minimizzarne la latenza con CompletableFuture paralleli.</p>
+     *
+     * <p>Se uno dei due provider non risponde correttamente (timeout, connessione rifiutata,
+     * errore HTTP), il ticket viene marcato {@code FAILED} invece di restare bloccato per
+     * sempre in {@code PENDING}: senza questo catch, l'eccezione verrebbe semplicemente
+     * persa (il CompletableFuture restituito da runAsync non viene mai osservato da nessuno),
+     * e il client continuerebbe a fare polling all'infinito senza alcun errore visibile.</p>
      */
     private void runSimulation(String ticketId, String vehicleId, boolean simulateWeekend) {
-        TariffData[] dailyTariffs = restTemplate.getForObject(
-            "http://tariff-provider/api/v1/tariffs/daily?simulateWeekend={simulateWeekend}",
-            TariffData[].class,
-            simulateWeekend
-        );
+        try {
+            TariffData[] dailyTariffs = restTemplate.getForObject(
+                "http://tariff-provider/api/v1/tariffs/daily?simulateWeekend={simulateWeekend}",
+                TariffData[].class,
+                simulateWeekend
+            );
 
-        VehicleStatusData vehicleStatus = restTemplate.getForObject(
-            "http://vehicle-provider/api/v1/vehicles/{vehicleId}/status",
-            VehicleStatusData.class,
-            vehicleId
-        );
+            VehicleStatusData vehicleStatus = restTemplate.getForObject(
+                "http://vehicle-provider/api/v1/vehicles/{vehicleId}/status",
+                VehicleStatusData.class,
+                vehicleId
+            );
 
-        GridSavingsResult result = computeSavings(vehicleStatus, dailyTariffs);
-        ticketResultMap.put(ticketId, result);
-        ticketStatusMap.put(ticketId, "COMPLETED");
+            GridSavingsResult result = computeSavings(vehicleStatus, dailyTariffs);
+            ticketResultMap.put(ticketId, result);
+            ticketStatusMap.put(ticketId, "COMPLETED");
+        } catch (RestClientException e) {
+            ticketStatusMap.put(ticketId, "FAILED");
+        }
     }
 
     private GridSavingsResult computeSavings(VehicleStatusData vehicleStatus, TariffData[] dailyTariffs) {

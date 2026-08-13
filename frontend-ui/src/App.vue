@@ -65,6 +65,11 @@ async function calculatePlan() {
 async function pollSimulationStatus(ticketId) {
   try {
     const response = await fetch(`http://localhost:9000/api/simulations/status/${ticketId}`);
+
+    if (response.status === 404) {
+      throw new Error('Ticket non trovato: la simulazione potrebbe non essere mai stata avviata su questa istanza.');
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -76,6 +81,10 @@ async function pollSimulationStatus(ticketId) {
 
     if (status === 'COMPLETED') {
       simulationResult.value = data;
+      simulationLoading.value = false;
+      stopPolling();
+    } else if (status === 'FAILED') {
+      simulationError.value = 'La simulazione non è riuscita: uno o più provider (tariff-provider/vehicle-provider) non hanno risposto correttamente.';
       simulationLoading.value = false;
       stopPolling();
     }
@@ -325,7 +334,8 @@ onBeforeUnmount(() => {
               :class="{
                 pending: simulationStatus === 'PENDING',
                 running: simulationStatus === 'RUNNING',
-                completed: simulationStatus === 'COMPLETED'
+                completed: simulationStatus === 'COMPLETED',
+                failed: simulationStatus === 'FAILED'
               }"
             >
               {{ simulationStatus }}
@@ -607,6 +617,11 @@ input {
 .pill.completed {
   background: #b7efc5;
   color: #2d6a4f;
+}
+
+.pill.failed {
+  background: #ffd6d6;
+  color: #9d0208;
 }
 
 pre {
