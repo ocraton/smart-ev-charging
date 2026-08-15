@@ -45,9 +45,12 @@ services:
       dockerfile: Dockerfile
       args:
         MODULE_NAME: tariff-provider
-    container_name: tariff-provider
+    # container_name e porta host fissa rimossi apposta: con entrambi impostati
+    # "docker compose up --scale tariff-provider=N" fallisce (nome/porta host duplicati).
+    # Porta host dinamica: il container espone comunque 8081, Docker assegna una porta
+    # host libera per ogni replica (scopribile con "docker compose port tariff-provider 8081").
     ports:
-      - "8081:8081" # Esponiamo la porta per testare Swagger dal Mac
+      - "8081"
     environment:
       - TZ=Europe/Rome
     depends_on:
