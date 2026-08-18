@@ -14,21 +14,35 @@ spring:
             allowedHeaders: "*"
       discovery:
         locator:
-          enabled: true # Permette di usare gli identificativi di Eureka per il routing
+          # Disabilitato di proposito. Se attivo, ogni servizio registrato su Eureka verrebbe
+          # esposto automaticamente all'esterno su /<service-id>/**, aggirando le route dichiarate
+          # qui sotto e rendendo raggiungibili dal client anche i provider interni. Tenendolo
+          # spento, la superficie pubblica del sistema coincide esattamente con le quattro route
+          # esplicite: il Gateway diventa una whitelist e non un proxy indiscriminato.
+          enabled: false
       routes:
-        # 1. Routing verso il Charging Orchestrator (FLOW-01, endpoint optimize)
+        # 1. Routing verso il Charging Orchestrator (FLOW-01, orchestrazione parallela)
         - id: charging-orchestrator
           uri: lb://charging-orchestrator
           predicates:
             - Path=/api/v1/optimize/**
-        
-        # 2. Routing verso l'Energy Prosumer (FLOW-02: Pattern Asincrono/Polling)
+
+        # 2. Routing verso l'Energy Prosumer (FLOW-02: pattern asincrono con polling)
         - id: energy-prosumer-route
           uri: lb://energy-prosumer
           predicates:
             - Path=/api/simulations/**
 
-        # 3. Routing diretto verso lo Station Provider (FLOW-03: Chiamata SOAP)
+        # 3. Routing verso la valutazione economica dell'Energy Prosumer. Il consumatore primario
+        #    e il Charging Orchestrator, che la invoca internamente via Eureka durante FLOW-01;
+        #    la route esiste comunque perche anche questa capacita, se richiesta da un client
+        #    esterno, deve restare raggiungibile solo attraverso il punto di ingresso unico.
+        - id: energy-cost-estimate-route
+          uri: lb://energy-prosumer
+          predicates:
+            - Path=/api/v1/energy/**
+
+        # 4. Routing diretto verso lo Station Provider (FLOW-03: chiamata SOAP)
         - id: station-provider-route
           uri: lb://station-provider
           predicates:

@@ -230,6 +230,7 @@ onBeforeUnmount(() => {
             <ul>
               <li><code>EV-001</code> → batteria 50 kWh, SoC 60% (normale)</li>
               <li><code>EV-002</code> → batteria 50 kWh, SoC 20% (critico)</li>
+              <li><code>EV-003</code> → batteria 50 kWh, SoC 90% (quasi carico)</li>
               <li>qualsiasi altro ID → default 60% (come EV-001)</li>
             </ul>
           </div>
@@ -264,19 +265,25 @@ onBeforeUnmount(() => {
                 <td><code>EV-002</code></td>
                 <td><code>STATION-FAST-01</code></td>
                 <td>indifferente</td>
-                <td>Ricarica immediata ad alta potenza (SoC critico + stazione potente)</td>
+                <td>Ricarica immediata ad alta potenza: l'urgenza tecnica prevale, ma il costo della fretta viene quantificato</td>
               </tr>
               <tr>
                 <td><code>EV-001</code></td>
+                <td><code>STATION-SLOW-01</code></td>
+                <td>indifferente</td>
+                <td>Ricarica differita alla fascia minima: servono 20 kWh, il risparmio giustifica l'attesa</td>
+              </tr>
+              <tr>
+                <td><code>EV-003</code></td>
                 <td><code>STATION-SLOW-01</code></td>
                 <td>no (default, feriale)</td>
-                <td>Ricarica distribuita nelle fasce a costo intermedio</td>
+                <td>Ricarica distribuita: mancano solo 5 kWh, differire farebbe risparmiare pochi centesimi</td>
               </tr>
               <tr>
-                <td><code>EV-001</code></td>
-                <td><code>STATION-SLOW-01</code></td>
-                <td>sì</td>
-                <td>Ricarica notturna consigliata / già in fascia economica</td>
+                <td>qualsiasi</td>
+                <td>qualsiasi</td>
+                <td>sì, in fascia notturna</td>
+                <td>Sei già nella fascia più economica: ricarica immediata</td>
               </tr>
             </tbody>
           </table>
@@ -287,7 +294,7 @@ onBeforeUnmount(() => {
     <main class="grid-layout">
       <section class="card flow-card">
         <h2>FLOW-01 · Ottimizzazione Ricarica</h2>
-        <p class="subtitle">Chiamata sincrona verso orchestratore parallelo.</p>
+        <p class="subtitle">Chiamata sincrona. L'orchestratore interroga in parallelo i tre provider e l'Energy Prosumer, poi sincronizza i contributi dei due prosumer in un'unica raccomandazione.</p>
 
         <label for="vehicleId">Vehicle ID</label>
         <input id="vehicleId" v-model="flow1VehicleId" type="text" />

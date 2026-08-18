@@ -15,16 +15,12 @@
     <description>Service Registry per la risoluzione dinamica degli IP dei microservizi</description>
 
     <dependencies>
+        <!-- Netflix Eureka Server: attiva il Service Registry tramite @EnableEurekaServer.
+             E l'unica dipendenza necessaria, perche questo modulo non espone logica di business
+             propria ne consuma altri servizi. -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
         </dependency>
     </dependencies>
 

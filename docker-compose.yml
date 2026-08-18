@@ -1,5 +1,22 @@
+# ============================================================================================
+# Orchestrazione dell'intera piattaforma Smart EV-Charging & Grid Optimizer.
+#
+# Convenzione sulle porte host. I servizi stateless, replicabili con "--scale", NON dichiarano
+# ne "container_name" ne una porta host fissa: entrambi devono essere univoci su Docker, quindi
+# la loro presenza farebbe fallire la creazione della seconda replica. Per questi servizi si
+# dichiara la sola porta del container e Docker assegna una porta host libera a ogni replica,
+# scopribile con "docker compose port <servizio> <porta-container>".
+#
+# Restano a porta fissa solo i tre componenti che devono essere raggiungibili a un indirizzo
+# noto: il registro, il Gateway (che il frontend contatta su localhost:9000) e il frontend stesso.
+# L'energy-prosumer e a porta fissa per una ragione diversa e piu interessante: e l'unico
+# servizio stateful del sistema (i ticket di FLOW-02 vivono in memoria), quindi non e replicabile
+# senza uno storage condiviso esterno.
+# ============================================================================================
+
 services:
-  # 1. Il Service Registry
+  # 1. Il Service Registry. Nodo singolo per definizione: e il punto di rendez-vous di tutti
+  #    gli altri servizi, che lo raggiungono all'hostname stabile "eureka-server".
   eureka-server:
     build:
       context: .
@@ -20,7 +37,8 @@ services:
     networks:
       - smart-charging-network
 
-  # 2. L'API Gateway
+  # 2. L'API Gateway. Porta host fissa perche e l'indirizzo pubblico del sistema, cablato nel
+  #    frontend. In produzione si scalerebbe mettendogli davanti un bilanciatore di livello 4.
   api-gateway:
     build:
       context: .
@@ -38,17 +56,15 @@ services:
     networks:
       - smart-charging-network
 
-  # 3. Il Tariff Provider
+  # 3. Il Tariff Provider. Stateless e replicabile: e il servizio con il fan-in piu alto
+  #    dell'architettura, perche interrogato da entrambi i prosumer e coinvolto in tutti i flussi.
+  #    docker compose up -d --scale tariff-provider=2
   tariff-provider:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         MODULE_NAME: tariff-provider
-    # container_name e porta host fissa rimossi apposta: con entrambi impostati
-    # "docker compose up --scale tariff-provider=N" fallisce (nome/porta host duplicati).
-    # Porta host dinamica: il container espone comunque 8081, Docker assegna una porta
-    # host libera per ogni replica (scopribile con "docker compose port tariff-provider 8081").
     ports:
       - "8081"
     environment:
@@ -59,16 +75,15 @@ services:
     networks:
       - smart-charging-network
 
-  # 4. Lo Station Provider
+  # 4. Lo Station Provider (SOAP). Stateless e replicabile.
   station-provider:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         MODULE_NAME: station-provider
-    container_name: station-provider
     ports:
-      - "8083:8083"
+      - "8083"
     environment:
       - TZ=Europe/Rome
     depends_on:
@@ -77,16 +92,15 @@ services:
     networks:
       - smart-charging-network
 
-  # 5. Il Vehicle Provider
+  # 5. Il Vehicle Provider. Stateless e replicabile.
   vehicle-provider:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         MODULE_NAME: vehicle-provider
-    container_name: vehicle-provider
     ports:
-      - "8082:8082"
+      - "8082"
     environment:
       - TZ=Europe/Rome
     depends_on:
@@ -95,7 +109,10 @@ services:
     networks:
       - smart-charging-network
 
-  # 6. L'Energy Prosumer
+  # 6. L'Energy Prosumer. Unico servizio STATEFUL: i ticket di FLOW-02 sono in una
+  #    ConcurrentHashMap in-process. Replicarlo romperebbe il polling, perche il client
+  #    potrebbe avviare la simulazione su un'istanza e interrogarne un'altra. Resta quindi
+  #    a istanza singola con porta host fissa, come scelta consapevole e documentata.
   energy-prosumer:
     build:
       context: .
@@ -113,16 +130,16 @@ services:
     networks:
       - smart-charging-network
 
-  # 7. Il Charging Orchestrator
+  # 7. Il Charging Orchestrator. Stateless e replicabile: non conserva nulla fra due richieste,
+  #    usa solo dati di integrazione a breve vita.
   charging-orchestrator:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         MODULE_NAME: charging-orchestrator
-    container_name: charging-orchestrator
     ports:
-      - "8085:8085"
+      - "8085"
     environment:
       - TZ=Europe/Rome
     depends_on:
@@ -131,7 +148,7 @@ services:
     networks:
       - smart-charging-network
 
-  # 8. Frontend UI Vue
+  # 8. Frontend UI Vue, servito da Nginx. Porta host fissa: e l'indirizzo che apre l'utente.
   frontend-ui:
     build:
       context: ./frontend-ui
