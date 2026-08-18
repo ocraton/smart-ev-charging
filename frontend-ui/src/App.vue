@@ -9,6 +9,10 @@ const flow1SimulateWeekend = ref(false);
 const flow1Loading = ref(false);
 const flow1Result = ref(null);
 const flow1Error = ref('');
+// Latenza totale percepita dal client. Serve a rendere tangibile l'effetto
+// dell'orchestrazione parallela: e circa la durata della piu lenta delle quattro
+// integrazioni, non la loro somma.
+const flow1ElapsedMs = ref(null);
 
 const simulationVehicleId = ref('EV-001');
 // Parametro di sola simulazione/demo: forza il Tariff Provider a comportarsi come weekend
@@ -35,10 +39,17 @@ function stopPolling() {
   }
 }
 
+// Formattatori usati per presentare i contributi dei due prosumer in modo leggibile,
+// senza costringere chi guarda a interpretare il JSON grezzo.
+const formatEur = (value) => (typeof value === 'number' ? `${value.toFixed(2)} €` : '—');
+const formatHour = (hour) => (typeof hour === 'number' ? `${String(hour).padStart(2, '0')}:00` : '—');
+const formatNumber = (value, unit) => (typeof value === 'number' ? `${value} ${unit}` : '—');
+
 async function calculatePlan() {
   flow1Loading.value = true;
   flow1Error.value = '';
   flow1Result.value = null;
+  flow1ElapsedMs.value = null;
 
   const query = new URLSearchParams({
     vehicleId: flow1VehicleId.value,
@@ -46,15 +57,18 @@ async function calculatePlan() {
     simulateWeekend: String(flow1SimulateWeekend.value)
   });
 
+  const startedAt = performance.now();
+
   try {
     const response = await fetch(`http://localhost:9000/api/v1/optimize?${query.toString()}`);
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data?.detail || data?.message || 'Errore durante il calcolo del piano.');
+      throw new Error(data?.error || data?.detail || data?.message || 'Errore durante il calcolo del piano.');
     }
 
     flow1Result.value = data;
+    flow1ElapsedMs.value = Math.round(performance.now() - startedAt);
   } catch (error) {
     flow1Error.value = error instanceof Error ? error.message : 'Errore imprevisto.';
   } finally {
@@ -313,7 +327,56 @@ onBeforeUnmount(() => {
 
         <p v-if="flow1Error" class="status error">{{ flow1Error }}</p>
         <p v-if="flow1Loading" class="status running">Caricamento risposta backend...</p>
-        <pre v-if="flow1Result">{{ JSON.stringify(flow1Result, null, 2) }}</pre>
+
+        <div v-if="flow1Result" class="flow1-result">
+          <!-- Rende visibile l'effetto dell'orchestrazione parallela: quattro integrazioni
+               concorrenti, una latenza sola. -->
+          <div
+            class="parallel-badge"
+            title="Le quattro integrazioni partono insieme su un thread pool dedicato: la durata totale e circa quella della piu lenta, non la somma."
+          >
+            4 integrazioni in parallelo · risposta completa in {{ flow1ElapsedMs }} ms
+          </div>
+
+          <!-- I due contributi sono presentati separatamente perche provengono da due prosumer
+               distinti, ciascuno con la propria competenza. Il colore richiama quello usato per
+               il servizio altrove nell'interfaccia. -->
+          <div class="contrib-grid">
+            <div class="contrib contrib-tech">
+              <h3>Vincoli tecnici</h3>
+              <p class="contrib-source">Charging Orchestrator<br />vehicle · tariff · station (SOAP)</p>
+              <dl>
+                <div><dt>Veicolo</dt><dd>{{ flow1Result.vehicleId }}</dd></div>
+                <div><dt>Batteria</dt><dd>{{ formatNumber(flow1Result.batteryCapacity, 'kWh') }}</dd></div>
+                <div><dt>Stato di carica</dt><dd>{{ formatNumber(flow1Result.currentSoC, '%') }}</dd></div>
+                <div><dt>Colonnina</dt><dd>{{ flow1Result.stationId }}</dd></div>
+                <div><dt>Potenza max</dt><dd>{{ formatNumber(flow1Result.maxPower, 'kW') }}</dd></div>
+              </dl>
+            </div>
+
+            <div class="contrib contrib-econ">
+              <h3>Valutazione economica</h3>
+              <p class="contrib-source">Energy Prosumer<br />tariff · vehicle</p>
+              <dl>
+                <div><dt>Energia mancante</dt><dd>{{ formatNumber(flow1Result.energyNeededKwh, 'kWh') }}</dd></div>
+                <div><dt>Costo adesso</dt><dd>{{ formatEur(flow1Result.estimatedCostNowEur) }}</dd></div>
+                <div><dt>Fascia minima</dt><dd>{{ formatHour(flow1Result.cheapestHour) }}</dd></div>
+                <div><dt>Costo in fascia minima</dt><dd>{{ formatEur(flow1Result.estimatedCostAtCheapestEur) }}</dd></div>
+                <div class="highlight"><dt>Risparmio potenziale</dt><dd>{{ formatEur(flow1Result.potentialSavingsEur) }}</dd></div>
+              </dl>
+            </div>
+          </div>
+
+          <div class="synthesis">
+            <span class="synthesis-label">Sintesi dopo la barriera di sincronizzazione</span>
+            <p>{{ flow1Result.recommendation }}</p>
+          </div>
+
+          <details>
+            <summary>Risposta JSON grezza</summary>
+            <pre>{{ JSON.stringify(flow1Result, null, 2) }}</pre>
+          </details>
+        </div>
       </section>
 
       <section class="card flow-card">
@@ -419,6 +482,9 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 20px;
   grid-template-columns: repeat(2, minmax(280px, 1fr));
+  /* Ogni card si dimensiona sul proprio contenuto: FLOW-01, una volta popolato,
+     e sensibilmente piu alto degli altri e non deve trascinare con se le card vicine. */
+  align-items: start;
 }
 
 .flow-card:nth-child(3) {
@@ -629,6 +695,120 @@ input {
 .pill.failed {
   background: #ffd6d6;
   color: #9d0208;
+}
+
+/* ---- FLOW-01: presentazione dei contributi dei due prosumer ---- */
+
+.parallel-badge {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(0, 119, 182, 0.12);
+  color: #005f73;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: help;
+}
+
+.contrib-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.contrib {
+  padding: 12px;
+  border: 1px solid rgba(27, 38, 59, 0.12);
+  border-left-width: 3px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Il bordo colorato riprende il colore gia associato a ciascun servizio altrove
+   nell'interfaccia: rosso per il Charging Orchestrator (pulsante di FLOW-01),
+   blu per l'Energy Prosumer (pulsante di FLOW-02). */
+.contrib-tech {
+  border-left-color: #d90429;
+}
+
+.contrib-econ {
+  border-left-color: #0077b6;
+}
+
+.contrib h3 {
+  margin: 0 0 3px;
+  font-size: 0.95rem;
+}
+
+.contrib-source {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #5a6b85;
+}
+
+.contrib dl {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.contrib dl > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.contrib dt {
+  font-size: 0.78rem;
+  color: #3a506b;
+}
+
+.contrib dd {
+  margin: 0;
+  text-align: right;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.contrib dl > div.highlight {
+  margin-top: 2px;
+  padding-top: 7px;
+  border-top: 1px dashed rgba(27, 38, 59, 0.18);
+}
+
+.contrib-econ .highlight dd {
+  font-size: 0.95rem;
+  color: #0077b6;
+}
+
+.synthesis {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(27, 38, 59, 0.14);
+  border-radius: 12px;
+  background: rgba(27, 38, 59, 0.05);
+}
+
+.synthesis-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5a6b85;
+}
+
+.synthesis p {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 pre {

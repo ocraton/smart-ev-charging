@@ -81,7 +81,7 @@ http://localhost:8080
 
 From the web interface you can exercise all three flows without any additional tooling:
 
-1. **FLOW-01 — Parallel orchestration with inter-prosumer coordination:** select a vehicle and a charging station. The UI displays the aggregated recommendation, produced by four parallel calls (three providers plus the other prosumer) joined on a synchronization barrier.
+1. **FLOW-01 — Parallel orchestration with inter-prosumer coordination:** select a vehicle and a charging station. The result panel attributes each value to the service that produced it — technical constraints gathered by `charging-orchestrator` on one side, economic assessment produced by `energy-prosumer` on the other — with the final recommendation shown below as the synthesis reached after the synchronization barrier. A badge reports the number of concurrent integrations and the total round-trip time, which stays in the tens of milliseconds despite four network hops. The raw JSON remains available in a collapsible section.
 2. **FLOW-02 — Asynchronous simulation:** start an energy savings simulation and watch the interface receive a ticket immediately (HTTP 202), then poll the status endpoint until the simulation reaches `COMPLETED`.
 3. **FLOW-03 — Direct SOAP call:** query `station-provider` directly, bypassing both prosumers. The frontend builds a raw SOAP envelope, POSTs it to `/ws/station` on the Gateway, and parses the XML response client-side — showing that the Gateway routes SOAP traffic exactly like REST traffic, based only on the request path.
 
