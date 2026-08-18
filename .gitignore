@@ -1,3 +1,9 @@
 .github/
 .claude/
 .mcp.json
+
+# Dipendenze e artefatti di build: sono rigenerati da "npm install" e da
+# "mvn package" (che i rispettivi Dockerfile eseguono comunque all'interno
+# del container), quindi non hanno motivo di stare nel repository.
+frontend-ui/node_modules/
+target/
