@@ -24,7 +24,7 @@ The two prosumers hold complementary halves of the decision and neither can prod
 - `charging-orchestrator` gathers the **technical** constraints — state of charge from `vehicle-provider`, deliverable power from `station-provider` over SOAP, and the hourly price list from `tariff-provider`;
 - `energy-prosumer` produces the **economic** assessment — how much energy is missing, what it costs to charge right now, and how much would be saved by waiting for the cheapest slot; to do so it consults `tariff-provider` and `vehicle-provider` itself.
 
-Both run at the same time on the orchestrator's thread pool and meet at the synchronization barrier, where their contributions are merged into a single recommendation.
+The two run at the same time in separate processes: the orchestrator dispatches all four integrations on its own dedicated `prosumerExecutor`, and while the other three are still in flight the `energy-prosumer` serves the cost-estimate call on a web thread of its own. They meet at the orchestrator's synchronization barrier, where their contributions are merged into a single recommendation.
 
 ## Prerequisites
 
@@ -155,7 +155,7 @@ docker compose logs -f tariff-provider
 
 Each replica logs which instance served the request, so repeated calls to FLOW-01 visibly alternate between them. Note that a single FLOW-01 request produces **two** reads of the tariff service — one from the orchestrator and one from the energy prosumer — which is precisely why this provider is the first candidate for scaling.
 
-To verify automatic reconvergence, stop one replica with `docker compose stop <container>` and keep issuing requests: after a brief window of transient failures, all traffic converges onto the surviving instance with no manual reconfiguration.
+To verify automatic reconvergence, stop a single replica with `docker stop <container-name>` — for example `docker stop final-test-tariff-provider-2`, since `docker compose stop tariff-provider` would stop *every* replica of that service — and keep issuing requests: after a brief window of transient failures, all traffic converges onto the surviving instance with no manual reconfiguration.
 
 ## Implemented Patterns
 
