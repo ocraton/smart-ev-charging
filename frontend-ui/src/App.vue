@@ -423,8 +423,9 @@ onBeforeUnmount(() => {
             <div><dt>Energia mancante al pieno</dt><dd>{{ formatNumber(simulationResult.result.energyNeededKwh, 'kWh') }}</dd></div>
             <div><dt>Tariffa di picco</dt><dd>{{ simulationResult.result.peakPricePerKwh }} €/kWh</dd></div>
             <div><dt>Tariffa minima ({{ formatHour(simulationResult.result.cheapestHour) }})</dt><dd>{{ simulationResult.result.offPeakPricePerKwh }} €/kWh</dd></div>
-            <div class="highlight"><dt>Risparmio stimato</dt><dd>{{ formatEur(simulationResult.result.estimatedSavingsEur) }}</dd></div>
+            <div class="highlight"><dt>Risparmio stimato (picco → minima)</dt><dd>{{ formatEur(simulationResult.result.estimatedSavingsEur) }}</dd></div>
           </dl>
+          <p class="synthesis-hint">Per minimizzare il costo, pianifica la ricarica intorno alle {{ formatHour(simulationResult.result.cheapestHour) }}.</p>
         </div>
 
         <details v-if="simulationResult">
@@ -804,6 +805,14 @@ input {
 
 .savings-result {
   margin-top: 14px;
+}
+
+.synthesis-hint {
+  margin: 10px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(27, 38, 59, 0.18);
+  font-size: 0.82rem;
+  color: #3a506b;
 }
 
 .synthesis {
