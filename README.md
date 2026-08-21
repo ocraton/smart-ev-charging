@@ -1,30 +1,6 @@
 # Smart EV-Charging & Grid Optimizer
 
-Study project for the final exam of the Service Oriented Software course. The educational goal is to design and implement, from scratch, a **Micro-SOA (Service-Oriented Architecture based on Microservices)** that applies the main cloud-native architectural patterns: dynamic service registration and discovery, an API Gateway as the single entry point, hybrid integration between **REST** and **SOAP** protocols, parallel orchestration with inter-prosumer coordination, and asynchronous communication based on polling.
-
-The application domain simulates a smart electric vehicle charging management system, in which several independent services collaborate to compute optimal charging plans and simulate energy savings on the power grid.
-
-## System Architecture
-
-The system consists of the following eight modules, each containerized as its own Docker service:
-
-- **`eureka-server`** — Service Registry based on Netflix Eureka. It is the first service to start and acts as the central registry with which all other microservices dynamically register, enabling service discovery and client-side load balancing.
-- **`api-gateway`** — Built with Spring Cloud Gateway, it is the single entry point exposed to external clients. It handles routing of requests to the correct microservice (resolved dynamically via Eureka) and centralized management of CORS policies. Automatic discovery-based routing is deliberately **disabled**, so the public surface of the system is exactly the set of explicitly declared routes.
-- **`tariff-provider`** *(REST Provider)* — Exposes hourly energy tariff data via REST. It is the highest fan-in component of the architecture, since it is consumed by both prosumers, and is the primary candidate for horizontal scaling.
-- **`vehicle-provider`** *(REST Provider)* — Exposes information about registered electric vehicles (battery capacity, state of charge) via REST.
-- **`station-provider`** *(SOAP Provider)* — Exposes charging station availability and status data via **SOAP/XML** (Apache CXF), demonstrating the integration of a strict-contract service (WSDL) within a predominantly REST architecture.
-- **`charging-orchestrator`** *(Prosumer — FLOW-01)* — Orchestration service that, given a vehicle and a station, invokes **four** downstream services **in parallel** using `CompletableFuture` on a dedicated executor: the three providers plus the `energy-prosumer`. All four are synchronized on a single `allOf(...).join()` barrier before the results are aggregated into one charging recommendation, returned synchronously to the client.
-- **`energy-prosumer`** *(Prosumer — FLOW-02 and cost estimation)* — Serves two complementary purposes. It implements an **asynchronous ticket/polling** pattern for long-running grid-savings simulations (HTTP 202 Accepted + `ticketId`), and it exposes a **synchronous cost-estimate endpoint** that is consumed by the `charging-orchestrator` during FLOW-01. The latter is what makes the two prosumers work in parallel and coordinate before the client is answered.
-- **`frontend-ui`** — User interface built with **Vue.js**, served by Nginx, that lets you visually test all three flows by talking exclusively to the API Gateway.
-
-### Inter-prosumer coordination
-
-The two prosumers hold complementary halves of the decision and neither can produce the recommendation alone:
-
-- `charging-orchestrator` gathers the **technical** constraints — state of charge from `vehicle-provider`, deliverable power from `station-provider` over SOAP, and the hourly price list from `tariff-provider`;
-- `energy-prosumer` produces the **economic** assessment — how much energy is missing, what it costs to charge right now, and how much would be saved by waiting for the cheapest slot; to do so it consults `tariff-provider` and `vehicle-provider` itself.
-
-The two run at the same time in separate processes: the orchestrator dispatches all four integrations on its own dedicated `prosumerExecutor`, and while the other three are still in flight the `energy-prosumer` serves the cost-estimate call on a web thread of its own. They meet at the orchestrator's synchronization barrier, where their contributions are merged into a single recommendation.
+Study project for the final exam of the Service Oriented Software course — a Micro-SOA application for optimizing electric vehicle charging. For the architectural description, design rationale, and interaction diagrams, see `project-report-en.docx` at the root of the repository. This file only covers how to set up, run, and test the system.
 
 ## Prerequisites
 
@@ -147,22 +123,12 @@ All stateless services support horizontal scaling. For example:
 docker compose up -d --scale tariff-provider=2 --scale charging-orchestrator=2
 ```
 
-The new instances register themselves with Eureka under the same logical service-id, and callers pick them up on their next registry fetch (up to about 30 seconds). To observe the client-side load balancing in action:
+The new instances register with Eureka under the same logical service-id, and callers pick them up on their next registry fetch (up to about 30 seconds). To observe the client-side load balancing in action:
 
 ```bash
 docker compose logs -f tariff-provider
 ```
 
-Each replica logs which instance served the request, so repeated calls to FLOW-01 visibly alternate between them. Note that a single FLOW-01 request produces **two** reads of the tariff service — one from the orchestrator and one from the energy prosumer — which is precisely why this provider is the first candidate for scaling.
+Each replica logs which instance served the request, so repeated calls to FLOW-01 visibly alternate between them.
 
-To verify automatic reconvergence, stop a single replica with `docker stop <container-name>` — for example `docker stop final-test-tariff-provider-2`, since `docker compose stop tariff-provider` would stop *every* replica of that service — and keep issuing requests: after a brief window of transient failures, all traffic converges onto the surviving instance with no manual reconfiguration.
-
-## Implemented Patterns
-
-- **Hybrid REST/SOAP topology:** seamless integration of a SOAP contract-based service (`station-provider`, WSDL + Apache CXF) within a predominantly REST ecosystem, showing how a Gateway and an orchestrator abstract protocol differences away from end clients.
-- **Dynamic Service Discovery:** elimination of hardcoded addresses thanks to Netflix Eureka, with runtime resolution via client-side load balancing (`lb://`) in both the Gateway and the prosumers.
-- **Parallel service orchestration with a synchronization barrier:** `CompletableFuture` on a dedicated executor invokes four downstream services simultaneously, reducing perceived latency from the sum of the calls to the slowest one.
-- **Inter-prosumer coordination:** the two prosumers work in parallel on complementary halves of the problem and synchronize before the client is answered.
-- **Non-blocking asynchronous polling:** the *fire-and-poll* pattern in `energy-prosumer`, where the client gets an immediate 202 with a reference ticket. The artificial delay uses `CompletableFuture.delayedExecutor` rather than `Thread.sleep()`, so no pool thread is held while waiting.
-- **Unified Gateway with an explicit route whitelist and centralized CORS.**
-- **Graceful degradation:** explicit HTTP timeouts, downstream failures translated into a clean HTTP 503 by a `@RestControllerAdvice`, and asynchronous tickets moved to a terminal `FAILED` state instead of hanging forever.
+To verify automatic reconvergence, stop a single replica with `docker stop <container-name>` — for example `docker stop final-test-tariff-provider-2`, since `docker compose stop tariff-provider` would stop *every* replica of that service — and keep issuing requests until traffic converges back onto the surviving instance. For the measured timings and the rationale behind these scenarios, see `project-report-en.docx`.
