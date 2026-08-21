@@ -414,7 +414,23 @@ onBeforeUnmount(() => {
         </div>
 
         <p v-if="simulationError" class="status error">{{ simulationError }}</p>
-        <pre v-if="simulationResult">{{ JSON.stringify(simulationResult, null, 2) }}</pre>
+
+        <div v-if="simulationResult?.result" class="contrib contrib-econ savings-result">
+          <h3>Confronto tariffario e risparmio stimato</h3>
+          <p class="contrib-source">Energy Prosumer<br />tariff · vehicle</p>
+          <dl>
+            <div><dt>Veicolo</dt><dd>{{ simulationResult.result.vehicleId }}</dd></div>
+            <div><dt>Energia mancante al pieno</dt><dd>{{ formatNumber(simulationResult.result.energyNeededKwh, 'kWh') }}</dd></div>
+            <div><dt>Tariffa di picco</dt><dd>{{ simulationResult.result.peakPricePerKwh }} €/kWh</dd></div>
+            <div><dt>Tariffa minima ({{ formatHour(simulationResult.result.cheapestHour) }})</dt><dd>{{ simulationResult.result.offPeakPricePerKwh }} €/kWh</dd></div>
+            <div class="highlight"><dt>Risparmio stimato</dt><dd>{{ formatEur(simulationResult.result.estimatedSavingsEur) }}</dd></div>
+          </dl>
+        </div>
+
+        <details v-if="simulationResult">
+          <summary>Risposta JSON grezza</summary>
+          <pre>{{ JSON.stringify(simulationResult, null, 2) }}</pre>
+        </details>
       </section>
 
       <section class="card flow-card">
@@ -784,6 +800,10 @@ input {
 .contrib-econ .highlight dd {
   font-size: 0.95rem;
   color: #0077b6;
+}
+
+.savings-result {
+  margin-top: 14px;
 }
 
 .synthesis {
